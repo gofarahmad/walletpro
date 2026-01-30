@@ -5,9 +5,9 @@ import { SyncService } from './services/sync';
 // import { GoogleDriveService } from './services/google'; // Removed
 // import { GoogleDriveService } from './services/google'; // Removed
 import { Screen, Transaction, BudgetCategory, Account, Category, DebtItem, CreditItem, Notification, UserProfile, UserData } from './types';
-import { BackupService } from '@/utils/backup.ts';
+import { BackupService } from '@/lib/backup.ts';
 import { DEFAULT_CATEGORIES } from './mockData';
-import { mapUser, mapTransaction, mapAccount, mapCategory, mapBudget, mapDebt, mapCredit, mapNotification } from './utils/mappers';
+import { mapUser, mapTransaction, mapAccount, mapCategory, mapBudget, mapDebt, mapCredit, mapNotification } from './lib/mappers';
 import Login from './screens/Login';
 import Dashboard from './screens/Dashboard';
 import Analysis from './screens/Analysis';
