@@ -1,17 +1,18 @@
 
 import React, { useState, useEffect } from 'react';
 import { UserProfile } from '../types';
+import { authApi } from '../services/api';
 
 interface LoginProps {
   users: UserProfile[]; // Saved users
-  allUsers: UserProfile[]; // All users database
   onLoginSuccess: (user: UserProfile) => void;
   onRegister: (user: UserProfile) => void;
   onDeleteUser: (userId: string) => void;
   onSaveProfile: (userId: string) => void;
+  onImport: () => void; // New prop
 }
 
-const Login: React.FC<LoginProps> = ({ users, allUsers, onLoginSuccess, onRegister, onDeleteUser, onSaveProfile }) => {
+const Login: React.FC<LoginProps> = ({ users, onLoginSuccess, onRegister, onDeleteUser, onSaveProfile, onImport }) => {
   // Screens: 'QuickLogin' (Saved Profiles) | 'ManualAuth' (Login/Register Form)
   const [view, setView] = useState<'QuickLogin' | 'ManualAuth'>(users.length > 0 ? 'QuickLogin' : 'ManualAuth');
 
@@ -80,44 +81,34 @@ const Login: React.FC<LoginProps> = ({ users, allUsers, onLoginSuccess, onRegist
   };
 
   // --- MANUAL AUTH LOGIC ---
-  const handleManualSubmit = (e: React.FormEvent) => {
+  const handleManualSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    if (authMode === 'Login') {
-      const user = allUsers.find(u => u.phoneNumber === phoneNumber && u.pin === authPin);
-      if (user) {
-        // Success! Ask to save profile if not already saved
-        if (!user.isSaved) {
-          setSaveProfileModalUser(user);
+    try {
+      if (authMode === 'Login') {
+        const user = await authApi.login(phoneNumber, authPin) as UserProfile;
+
+        // Success! Ask to save profile if not already saved locally
+        // We check against `users` prop (saved users) to see if we should prompt
+        const isAlreadySaved = users.some(u => u.id === user.id);
+
+        if (!isAlreadySaved) {
+          // Inject isSaved false so modal logic works
+          setSaveProfileModalUser({ ...user, isSaved: false });
         } else {
           onLoginSuccess(user);
         }
       } else {
-        alert('Nomor HP atau PIN salah!');
-      }
-    } else {
-      // Register
-      if (fullName && phoneNumber && authPin.length === 4) {
-        const exists = allUsers.find(u => u.phoneNumber === phoneNumber);
-        if (exists) {
-          alert('Nomor HP sudah terdaftar!');
-          return;
-        }
+        // Register
+        // Note: Register now returns the user object from backend
+        const newUser = await authApi.register(fullName, phoneNumber, authPin, `https://picsum.photos/seed/${phoneNumber}/100`) as UserProfile;
 
-
-        const newUser: UserProfile = {
-          id: Math.random().toString(36).substr(2, 9),
-          name: fullName,
-          phoneNumber: phoneNumber,
-          pin: authPin,
-          photoUrl: `https://picsum.photos/seed/${phoneNumber}/100`,
-          isSaved: false // Default false, ask user next
-        };
-        // REMOVED: onRegister(newUser); -> This caused premature login/unmount
-        // Instead, we just set the local state to show the modal.
-        // We will call onRegister later when the user confirms or cancels saving.
-        setSaveProfileModalUser(newUser);
+        // Prompt to save profile locally
+        setSaveProfileModalUser({ ...newUser, isSaved: false });
       }
+    } catch (err: any) {
+      console.error('Auth Error:', err);
+      alert(err.message || 'Terjadi kesalahan saat otentikasi');
     }
   };
 
@@ -393,9 +384,20 @@ const Login: React.FC<LoginProps> = ({ users, allUsers, onLoginSuccess, onRegist
               >
                 {authMode === 'Login' ? 'Masuk Sekarang' : 'Daftar Akun'}
               </button>
+
+              {authMode === 'Register' && (
+                <button
+                  type="button"
+                  onClick={onImport}
+                  className="w-full py-3 border-2 border-dashed border-slate-300 dark:border-slate-700 rounded-2xl text-slate-400 font-bold text-sm hover:border-primary hover:text-primary transition-all flex items-center justify-center gap-2 mt-3"
+                >
+                  <span className="material-symbols-outlined">upload_file</span>
+                  Import Data Cadangan
+                </button>
+              )}
             </form>
 
-            <div className="text-center mt-6">
+            <div className="text-center mt-6 space-y-4">
               {users.length > 0 && (
                 <button
                   onClick={() => setView('QuickLogin')}

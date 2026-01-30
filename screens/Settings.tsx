@@ -7,9 +7,11 @@ interface SettingsProps {
   onBack: () => void;
   onUpdateUser: (updated: UserProfile) => void;
   onLogout: () => void;
+  onExport: () => void; // New prop
+  onImport: () => void; // New prop
 }
 
-const Settings: React.FC<SettingsProps> = ({ user, onBack, onUpdateUser, onLogout }) => {
+const Settings: React.FC<SettingsProps> = ({ user, onBack, onUpdateUser, onLogout, onExport, onImport }) => {
   const [name, setName] = useState(user.name);
   const [phoneNumber, setPhoneNumber] = useState(user.phoneNumber);
   const [photoUrl, setPhotoUrl] = useState(user.photoUrl);
@@ -38,29 +40,10 @@ const Settings: React.FC<SettingsProps> = ({ user, onBack, onUpdateUser, onLogou
     fileInputRef.current?.click();
   };
 
-  const handleGoogleLogin = async () => {
-    try {
-      // Typically we'd call onUpdateUser with the email inside App.tsx via a dedicated handler, 
-      // but for now we'll imply functionality or pass a handler. 
-      // The architecture plan says Settings should handle UI.
-      // We need to call GoogleDriveService.signIn() here.
-      // However, Settings doesn't import GoogleDriveService directly to keep it clean? 
-      // It's better if `onGoogleLogin` prop is passed.
-      // For speed, let's assume we import the service here or App passes a handler.
-      // Let's modify SettingsProps first or just import service. Importing service is easier for now.
-      const email = await import('../services/google').then(m => m.GoogleDriveService.signIn());
-      if (email) {
-        onUpdateUser({ ...user, email });
-      }
-    } catch (error) {
-      console.error('Google Login Error:', error);
-    }
-  };
+  // Google Sync Removed
+  // Manual Backup Handlers passed from parent or implemented here?
+  // Ideally passed from App.tsx via onExport/onImport props
 
-  const handleGoogleLogout = async () => {
-    await import('../services/google').then(m => m.GoogleDriveService.signOut());
-    onUpdateUser({ ...user, email: undefined });
-  };
 
   return (
     <div className="flex flex-col min-h-full bg-slate-50 dark:bg-background-dark font-display">
@@ -106,35 +89,26 @@ const Settings: React.FC<SettingsProps> = ({ user, onBack, onUpdateUser, onLogou
         {/* Form Section */}
         <div className="space-y-6">
           <div className="space-y-1">
-            {/* Google Sync Section */}
+            {/* Data Backup Section */}
             <div className="bg-slate-900 text-white rounded-[28px] p-6 shadow-2xl relative overflow-hidden mb-6">
               <div className="relative z-10">
-                <h3 className="text-lg font-bold mb-1">Google Drive Sync</h3>
-                <p className="text-white/60 text-xs mb-4">Singkronisasi otomatis ke akun Google Anda.</p>
+                <h3 className="text-lg font-bold mb-1">Cadangkan Data</h3>
+                <p className="text-white/60 text-xs mb-4">Simpan data Anda secara manual atau pulihkan dari file cadangan.</p>
 
-                {user.email ? (
-                  <div className="flex items-center justify-between bg-white/10 rounded-2xl p-4 border border-white/5">
-                    <div className="flex items-center gap-3">
-                      <img src="https://www.gstatic.com/images/branding/product/1x/drive_2020q4_48dp.png" className="size-8" alt="Drive" />
-                      <div>
-                        <p className="text-[10px] font-bold uppercase tracking-widest text-primary">Terhubung</p>
-                        <p className="text-sm font-bold">{user.email}</p>
-                      </div>
-                    </div>
-                    <button onClick={handleGoogleLogout} className="size-10 rounded-xl bg-white/10 flex items-center justify-center text-white active:scale-95 transition-transform">
-                      <span className="material-symbols-outlined">logout</span>
-                    </button>
-                  </div>
-                ) : (
-                  <button onClick={handleGoogleLogin} className="w-full h-14 bg-white text-slate-900 rounded-2xl flex items-center justify-center gap-3 font-bold text-sm shadow-xl active:scale-[0.98] transition-all">
-                    <img src="https://www.gstatic.com/images/branding/product/1x/google_g_48dp.png" className="size-6" alt="Google" />
-                    Hubungkan Google Drive
+                <div className="flex gap-3">
+                  <button onClick={onExport} className="flex-1 h-14 bg-white text-slate-900 rounded-2xl flex items-center justify-center gap-2 font-bold text-sm shadow-xl active:scale-[0.98] transition-all">
+                    <span className="material-symbols-outlined">download</span>
+                    Export
                   </button>
-                )}
+                  <button onClick={onImport} className="flex-1 h-14 bg-white/10 text-white rounded-2xl flex items-center justify-center gap-2 font-bold text-sm hover:bg-white/20 active:scale-[0.98] transition-all">
+                    <span className="material-symbols-outlined">upload</span>
+                    Import
+                  </button>
+                </div>
               </div>
               {/* Decoration */}
               <div className="absolute -right-6 -bottom-10 opacity-10">
-                <span className="material-symbols-outlined text-[120px]">cloud_sync</span>
+                <span className="material-symbols-outlined text-[120px]">save</span>
               </div>
             </div>
 

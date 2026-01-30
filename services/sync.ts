@@ -6,6 +6,9 @@ export const SyncService = {
     async sync(userId: string) {
         if (!navigator.onLine) return;
 
+        // Process REST Queue first to ensure backend is up to date
+        await this.processRestQueue();
+
         try {
             // 1. Check Auth
             if (!GoogleDriveService.isSignedIn()) {
@@ -69,7 +72,35 @@ export const SyncService = {
 
     // Alias for compatibility
     async pushChanges() {
+        await this.processRestQueue();
         await this.sync('google-user');
+    },
+
+    async processRestQueue() {
+        if (!navigator.onLine) return;
+
+        const queue = await db.syncQueue.orderBy('timestamp').toArray();
+        const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001/api';
+
+        for (const item of queue) {
+            try {
+                const response = await fetch(`${API_URL}${item.endpoint}`, {
+                    method: item.type,
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(item.body)
+                });
+
+                if (response.ok) {
+                    if (item.id) await db.syncQueue.delete(item.id);
+                } else {
+                    console.error('Sync failed for item', item.id, response.statusText);
+                    break; // Stop on error to preserve order
+                }
+            } catch (error) {
+                console.error('Network error processing sync queue', error);
+                break;
+            }
+        }
     },
 
     async pullData(userId: string) {

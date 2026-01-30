@@ -377,7 +377,7 @@ const Credits: React.FC<CreditsProps> = ({ credits, accounts, onPayCredit, onAdd
                         ? 'bg-slate-50 dark:bg-slate-800 text-slate-300 dark:text-slate-600'
                         : 'bg-primary text-white shadow-lg shadow-primary/20 active:scale-[0.98]')
                       }`}
-                    disabled={!progressBytes >= 100 && item.isPaidThisMonth}
+                    disabled={progressBytes < 100 && item.isPaidThisMonth}
                   >
                     {progressBytes >= 100 ? (
                       <div className="flex items-center justify-center gap-2">
@@ -609,7 +609,7 @@ const Credits: React.FC<CreditsProps> = ({ credits, accounts, onPayCredit, onAdd
         </div>
       )}
 
-      <button onClick={() => setIsModalOpen(true)} className="absolute bottom-24 right-6 size-14 rounded-2xl bg-slate-900 text-white shadow-2xl flex items-center justify-center active:scale-95 transition-transform z-40">
+      <button onClick={() => setIsModalOpen(true)} className="fixed bottom-24 right-6 size-14 rounded-2xl bg-slate-900 text-white shadow-2xl flex items-center justify-center active:scale-95 transition-transform z-40">
         <span className="material-symbols-outlined text-3xl">add</span>
       </button>
     </div>

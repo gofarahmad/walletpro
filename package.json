@@ -5,6 +5,7 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
+    "server": "node server/server.js",
     "build": "vite build",
     "preview": "vite preview",
     "test": "npx playwright test"
@@ -17,7 +18,8 @@
     "gapi-script": "^1.2.0",
     "react": "^19.2.3",
     "react-dom": "^19.2.3",
-    "recharts": "^3.6.0"
+    "recharts": "^3.6.0",
+    "ssh2": "^1.17.0"
   },
   "devDependencies": {
     "@playwright/test": "^1.58.0",

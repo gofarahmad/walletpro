@@ -40,6 +40,11 @@ app.get('/api/health', (req, res) => {
     res.json({ status: 'ok', message: 'WealthWise API is running' });
 });
 
+// Root Route
+app.get('/', (req, res) => {
+    res.json({ message: 'WealthWise API Server is Running! 🚀' });
+});
+
 // Error handling middleware
 app.use((err, req, res, next) => {
     console.error(err.stack);

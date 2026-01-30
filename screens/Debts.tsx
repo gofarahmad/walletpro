@@ -563,7 +563,7 @@ const Debts: React.FC<DebtsProps> = ({ debts, accounts, onAddDebt, onPayDebt, on
         )
       }
 
-      <button onClick={() => setIsModalOpen(true)} className="absolute bottom-24 right-6 size-14 rounded-2xl bg-slate-900 text-white shadow-2xl flex items-center justify-center active:scale-95 transition-transform z-40">
+      <button onClick={() => setIsModalOpen(true)} className="fixed bottom-24 right-6 size-14 rounded-2xl bg-slate-900 text-white shadow-2xl flex items-center justify-center active:scale-95 transition-transform z-40">
         <span className="material-symbols-outlined text-3xl">add</span>
       </button>
     </div >

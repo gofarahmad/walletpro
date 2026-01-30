@@ -1,7 +1,7 @@
 import { gapi } from 'gapi-script';
 
 // REPLACE WITH YOUR ACTUAL CLIENT ID
-const CLIENT_ID = 'YOUR_GOOGLE_CLIENT_ID.apps.googleusercontent.com';
+const CLIENT_ID = '823884161417-uqf0h8cfv5naho36v1v37a204dchcfd9.apps.googleusercontent.com';
 const API_KEY = ''; // Optional if using OAuth only usually
 const DISCOVERY_DOCS = ["https://www.googleapis.com/discovery/v1/apis/drive/v3/rest"];
 const SCOPES = "https://www.googleapis.com/auth/drive.appdata";

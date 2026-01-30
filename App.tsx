@@ -2,8 +2,10 @@ import React, { useState, useMemo, useEffect } from 'react';
 import { useLiveQuery } from 'dexie-react-hooks';
 import { db } from './db';
 import { SyncService } from './services/sync';
-import { GoogleDriveService } from './services/google';
+// import { GoogleDriveService } from './services/google'; // Removed
+// import { GoogleDriveService } from './services/google'; // Removed
 import { Screen, Transaction, BudgetCategory, Account, Category, DebtItem, CreditItem, Notification, UserProfile, UserData } from './types';
+import { BackupService } from './utils/backup';
 import { DEFAULT_CATEGORIES } from './mockData';
 import { mapUser, mapTransaction, mapAccount, mapCategory, mapBudget, mapDebt, mapCredit, mapNotification } from './utils/mappers';
 import Login from './screens/Login';
@@ -29,6 +31,33 @@ const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001/api';
 const App: React.FC = () => {
   const [currentScreen, setCurrentScreen] = useState<Screen>('Home');
   const [loading, setLoading] = useState(true);
+  const [isCheckingSession, setIsCheckingSession] = useState(true);
+
+  // Session Restore
+  useEffect(() => {
+    const restoreSession = async () => {
+      try {
+        const session = localStorage.getItem('wealthwise_session');
+        if (session) {
+          const { userId, expiry } = JSON.parse(session);
+          if (Date.now() < expiry) {
+            const user = await db.users.get(userId);
+            if (user) {
+              setCurrentUser(user);
+              setLoading(false); // Enable immediate render
+            }
+          } else {
+            localStorage.removeItem('wealthwise_session');
+          }
+        }
+      } catch (e) {
+        console.error('Session restore error:', e);
+      } finally {
+        setIsCheckingSession(false);
+      }
+    };
+    restoreSession();
+  }, []);
 
   // User Management State
   const users = useLiveQuery(() => db.users.toArray()) || [];
@@ -86,7 +115,25 @@ const App: React.FC = () => {
             photoUrl: u.photo_url,
             isSaved: u.is_saved
           }));
-          await db.users.bulkPut(mappedUsers);
+
+          // Defensive Sync: Only update users that don't have pending local changes
+          const safeUsersToUpdate = [];
+          for (const user of mappedUsers) {
+            const pendingUpdate = await db.syncQueue
+              .where('endpoint')
+              .equals(`/auth/users/${user.id}`)
+              .count();
+
+            if (pendingUpdate === 0) {
+              safeUsersToUpdate.push(user);
+            } else {
+              console.log(`Skipping overwrite for user ${user.id} due to pending server sync.`);
+            }
+          }
+
+          if (safeUsersToUpdate.length > 0) {
+            await db.users.bulkPut(safeUsersToUpdate);
+          }
         }
       } catch (e) {
         console.log('Offline: Using cached users');
@@ -102,12 +149,15 @@ const App: React.FC = () => {
       if (currentUser) SyncService.sync(currentUser.id);
     };
 
-    // Init Google Client
-    GoogleDriveService.initClient().then((isSignedIn) => {
-      if (isSignedIn && currentUser) {
-        SyncService.sync(currentUser.id);
-      }
-    });
+    // Init Google Client REMOVED
+    // GoogleDriveService.initClient().then((isSignedIn) => {
+    //   if (isSignedIn && currentUser) {
+    //     SyncService.sync(currentUser.id);
+    //   }
+    // });
+
+    // We can keep SyncService for backend sync (REST), but remove Google part.
+    // SyncService.sync(currentUser.id) calls processRestQueue.
 
     window.addEventListener('online', handleOnline);
     return () => window.removeEventListener('online', handleOnline);
@@ -122,6 +172,12 @@ const App: React.FC = () => {
 
   // Login Handler
   const handleLogin = async (user: UserProfile) => {
+    // Save session (30 days)
+    localStorage.setItem('wealthwise_session', JSON.stringify({
+      userId: user.id,
+      expiry: Date.now() + 30 * 24 * 60 * 60 * 1000
+    }));
+
     setCurrentUser(user);
     if (navigator.onLine) {
       SyncService.pullData(user.id);
@@ -131,28 +187,16 @@ const App: React.FC = () => {
 
   const handleRegister = async (newUser: UserProfile) => {
     try {
-      // Save locally
+      // Save locally (Cache)
       await db.users.put(newUser);
 
-      // Queue sync
-      await db.syncQueue.add({
-        type: 'POST',
-        endpoint: '/auth/register',
-        body: {
-          id: newUser.id,
-          name: newUser.name,
-          phoneNumber: newUser.phoneNumber,
-          pin: newUser.pin,
-          photoUrl: newUser.photoUrl,
-          isSaved: newUser.isSaved
-        },
-        timestamp: Date.now()
-      });
+      // No need to queue sync for /auth/register because registration is now direct via API in Login.tsx
+      // SyncService will eventually pull updates anyway.
 
       handleLogin(newUser);
-      SyncService.pushChanges();
+      // SyncService.pushChanges(); // No changes to push
     } catch (error) {
-      console.error('Error registering user:', error);
+      console.error('Error saving new user:', error);
     }
   };
 
@@ -162,6 +206,14 @@ const App: React.FC = () => {
       if (user) {
         const updatedUser = { ...user, isSaved: true };
         await db.users.put(updatedUser);
+
+        // Sync Queue logic removed for 'isSaved' if pure local? 
+        // No, we keep server sync for user profile updates generally.
+        // But Google Sync references in handleLogin/etc should be removed if any.
+        // (Snippet shows handleLogin uses SyncService.pullData(user.id))
+        // SyncService still uses GoogleDrive? 
+        // We should probably strip Google Drive from SyncService later or just ignore it.
+        // For now, let's focus on Backup handlers.
 
         await db.syncQueue.add({
           type: 'PUT',
@@ -180,6 +232,43 @@ const App: React.FC = () => {
     }
   };
 
+  // --- Backup Handlers ---
+  const handleExportData = async () => {
+    const success = await BackupService.exportData();
+    if (success) {
+      alert('Data berhasil diexport!');
+      // Or use notification if currentUser is set
+      if (currentUser) addNotification('Export Berhasil', 'Data Anda telah disimpan dalam format JSON.', 'Success');
+    } else {
+      alert('Gagal mengexport data.');
+    }
+  };
+
+  const handleImportData = () => {
+    // Create a hidden file input to trigger upload
+    const input = document.createElement('input');
+    input.type = 'file';
+    input.accept = 'application/json';
+    input.onchange = async (e) => {
+      const file = (e.target as HTMLInputElement).files?.[0];
+      if (file) {
+        if (window.confirm('Import akan menggabungkan/menimpa data saat ini. Lanjutkan?')) {
+          setLoading(true);
+          const result = await BackupService.importData(file);
+          alert(result.message);
+
+          if (result.success) {
+            // Reload to reflect changes
+            window.location.reload();
+          } else {
+            setLoading(false);
+          }
+        }
+      }
+    };
+    input.click();
+  };
+
   const handleDeleteUser = async (userId: string) => {
     try {
       await db.users.delete(userId);
@@ -196,6 +285,7 @@ const App: React.FC = () => {
   };
 
   const handleLogout = () => {
+    localStorage.removeItem('wealthwise_session');
     setCurrentUser(null);
     setCurrentScreen('Home');
   };
@@ -796,7 +886,7 @@ const App: React.FC = () => {
 
   // Render Screen
   const renderScreen = () => {
-    if (loading) {
+    if (loading || isCheckingSession) {
       return (
         <div className="flex items-center justify-center min-h-screen">
           <div className="text-center">
@@ -812,11 +902,11 @@ const App: React.FC = () => {
       return (
         <Login
           users={savedUsers}
-          allUsers={users}
           onLoginSuccess={handleLogin}
           onRegister={handleRegister}
           onDeleteUser={handleDeleteUser}
           onSaveProfile={handleSaveProfile}
+          onImport={handleImportData}
         />
       );
     }
@@ -885,7 +975,7 @@ const App: React.FC = () => {
           onClearAll={handleClearAllReadNotifications}
         />;
       case 'Settings':
-        return <Settings user={currentUser} onBack={() => setCurrentScreen('Home')} onUpdateUser={handleUpdateUser} onLogout={handleLogout} />;
+        return <Settings user={currentUser} onBack={() => setCurrentScreen('Home')} onUpdateUser={handleUpdateUser} onLogout={handleLogout} onExport={handleExportData} onImport={handleImportData} />;
       default:
         return <Dashboard user={currentUser} totalBalance={totalBalance} income={monthIncome} expenses={monthExpenses} transactions={transactions} categories={categories} budgets={budgets} unreadNotifCount={unreadNotificationCount} onAdd={() => setCurrentScreen('AddTransaction')} onEdit={(tx) => { setEditingTransaction(tx); setCurrentScreen('AddTransaction'); }} onOpenNotifications={() => setCurrentScreen('Notifications')} onOpenSettings={() => setCurrentScreen('Settings')} onSeeAll={() => setCurrentScreen('Stats')} />;
     }
