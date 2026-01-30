@@ -1,7 +1,7 @@
 {
-    "name": "wealthwise-backend",
+    "name": "payfin-backend",
     "version": "1.0.0",
-    "description": "Backend API for WealthWise Finance Manager",
+    "description": "Backend API for PayFin Finance Manager",
     "main": "server.js",
     "type": "module",
     "scripts": {

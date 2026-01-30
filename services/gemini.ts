@@ -4,9 +4,9 @@ import { Transaction } from "../types";
 
 export const getFinancialInsight = async (transactions: Transaction[]): Promise<string> => {
   const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
-  
+
   const summary = transactions.map(t => `${t.type}: ${t.amount} di kategori ${t.category} (${t.note})`).join('\n');
-  
+
   try {
     const response = await ai.models.generateContent({
       model: 'gemini-3-flash-preview',
@@ -29,13 +29,13 @@ export const getFinancialInsight = async (transactions: Transaction[]): Promise<
 
 export const createFinancialChat = (transactions: Transaction[]): Chat => {
   const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
-  
+
   const summary = transactions.map(t => `${t.type}: ${t.amount} di kategori ${t.category} pada ${new Date(t.date).toLocaleDateString()} (${t.note})`).join('\n');
 
   return ai.chats.create({
     model: 'gemini-3-pro-preview',
     config: {
-      systemInstruction: `Anda adalah WealthWise AI, asisten keuangan pribadi yang cerdas, profesional, dan ramah.
+      systemInstruction: `Anda adalah PayFin AI, asisten keuangan pribadi yang cerdas, profesional, dan ramah.
       Anda memiliki akses ke seluruh riwayat data transaksi pengguna berikut untuk dianalisis:
       ${summary}
       

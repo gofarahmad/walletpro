@@ -16,8 +16,8 @@ export default defineConfig(({ mode }) => {
         registerType: 'autoUpdate',
         includeAssets: ['favicon.ico', 'apple-touch-icon.png', 'masked-icon.svg'],
         manifest: {
-          name: 'WealthWise - Personal Finance',
-          short_name: 'WealthWise',
+          name: 'PayFin - Personal Finance',
+          short_name: 'PayFin',
           description: 'Manage your personal finances with ease',
           theme_color: '#136dec',
           background_color: '#f6f7f8',

@@ -37,7 +37,7 @@ const App: React.FC = () => {
   useEffect(() => {
     const restoreSession = async () => {
       try {
-        const session = localStorage.getItem('wealthwise_session');
+        const session = localStorage.getItem('payfin_session');
         if (session) {
           const { userId, expiry } = JSON.parse(session);
           if (Date.now() < expiry) {
@@ -47,7 +47,7 @@ const App: React.FC = () => {
               setLoading(false); // Enable immediate render
             }
           } else {
-            localStorage.removeItem('wealthwise_session');
+            localStorage.removeItem('payfin_session');
           }
         }
       } catch (e) {
@@ -173,7 +173,7 @@ const App: React.FC = () => {
   // Login Handler
   const handleLogin = async (user: UserProfile) => {
     // Save session (30 days)
-    localStorage.setItem('wealthwise_session', JSON.stringify({
+    localStorage.setItem('payfin_session', JSON.stringify({
       userId: user.id,
       expiry: Date.now() + 30 * 24 * 60 * 60 * 1000
     }));
@@ -285,7 +285,7 @@ const App: React.FC = () => {
   };
 
   const handleLogout = () => {
-    localStorage.removeItem('wealthwise_session');
+    localStorage.removeItem('payfin_session');
     setCurrentUser(null);
     setCurrentScreen('Home');
   };

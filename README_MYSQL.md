@@ -1,4 +1,4 @@
-# WealthWise - MySQL Setup Guide
+# PayFin - MySQL Setup Guide
 
 ## Prerequisites
 
