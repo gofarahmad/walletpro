@@ -37,6 +37,11 @@ export default defineConfig(({ mode }) => {
               type: 'image/svg+xml'
             }
           ]
+        },
+        workbox: {
+          globPatterns: ['**/*.{js,css,html,ico,png,svg}'],
+          maximumFileSizeToCacheInBytes: 3000000,
+          cleanupOutdatedCaches: true
         }
       })
     ],
