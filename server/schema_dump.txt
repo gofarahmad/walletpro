@@ -1,0 +1,23 @@
+CREATE TABLE `debts` (
+  `id` varchar(36) NOT NULL,
+  `user_id` varchar(36) NOT NULL,
+  `name` varchar(255) NOT NULL,
+  `amount` decimal(15,2) NOT NULL,
+  `paid` decimal(15,2) DEFAULT 0.00,
+  `due_date` date DEFAULT NULL,
+  `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
+  `updated_at` timestamp NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp(),
+  `interest_rate` decimal(5,2) DEFAULT 0.00,
+  `interest_type` enum('Annual','Monthly') DEFAULT 'Annual',
+  `start_date` date DEFAULT NULL,
+  `duration_months` int(11) DEFAULT 1,
+  `hold_amount` decimal(15,2) DEFAULT 0.00,
+  `last_payment_date` datetime DEFAULT NULL,
+  `admin_fee` decimal(15,2) DEFAULT 0.00,
+  `phone_number` varchar(20) DEFAULT NULL,
+  `type` enum('Hutang','Piutang') DEFAULT 'Hutang',
+  `note` text DEFAULT NULL,
+  PRIMARY KEY (`id`),
+  KEY `idx_user_due` (`user_id`,`due_date`),
+  CONSTRAINT `debts_ibfk_1` FOREIGN KEY (`user_id`) REFERENCES `users` (`id`) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
